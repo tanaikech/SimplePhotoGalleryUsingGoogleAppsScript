@@ -1,0 +1,62 @@
+<link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery.js@1.2.0/src/css/lightgallery.css" />
+<script src="https://cdn.jsdelivr.net/npm/lightgallery.js@1.2.0/dist/js/lightgallery.min.js"></script>
+<div>
+<label id="label" for="file" style="color: white; background-color: deepskyblue; border-radius: 3px;">
+Upload images
+<input type="file" id="file" multiple="true" style="display:none;" accept="image/png,image/jpeg">
+</div>
+<div id="status"></div>
+<div id="lightgallery"></div>
+
+<script>
+function showImages(urls) {
+  if (urls.length == 0) return;
+  const lightgallery = document.getElementById("lightgallery");
+  lightgallery.innerHTML = "";
+  urls.forEach(url => {
+    const a = document.createElement("a");
+    a.setAttribute("href", url);
+    const img = document.createElement("img");
+    img.setAttribute("src", url);
+    img.setAttribute("width", 200);
+    a.appendChild(img);
+    lightgallery.appendChild(a);
+  });
+  lightGallery(document.getElementById('lightgallery'), {download: false});
+}
+
+const f = document.getElementById('file');
+f.addEventListener("change", () => {
+  if (f.files.length > 0) {
+    const status = document.getElementById("status");
+    status.innerHTML = "Now uploading...";
+    Promise.all([...f.files].map((file, i) => {
+      const fr = new FileReader();
+      return new Promise(r => {
+        fr.onload = e => {
+          const data = e.target.result.split(",");
+          r({fileName: file.name, mimeType: data[0].match(/:(\w.+);/)[1], data: data[1]});
+        }
+        fr.readAsDataURL(file);
+      });
+    }))
+    .then(images => {
+      google.script.run
+      .withFailureHandler(err => {
+        console.log(err);
+        status.innerHTML = "";
+      })
+      .withSuccessHandler(() => {
+        main();
+        status.innerHTML = "";
+      }).appendImages(images);
+    });
+  }
+});
+
+function main() {
+  google.script.run.withFailureHandler(err => console.log(err)).withSuccessHandler(showImages).getImages();
+}
+
+main();
+</script>
